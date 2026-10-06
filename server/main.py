@@ -1,17 +1,41 @@
 from contextlib import asynccontextmanager
 import json
 import os
+import secrets
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security, status
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
 load_dotenv()
 
 GOLEMIO_BASE = "https://api.golemio.cz"
 API_KEY = os.environ["GOLEMIO_API_KEY"]
+API_TOKEN = os.getenv("API_TOKEN")
 STOPS_FILE = "stops.json"
 DEPARTURES_LIMIT = 2
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+http_bearer = HTTPBearer(auto_error=False)
+
+
+def verify_token(
+    header_token: str | None = Security(api_key_header),
+    bearer_token: HTTPAuthorizationCredentials | None = Security(http_bearer),
+):
+    if not API_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="API_TOKEN is not configured on the server",
+        )
+    token = (bearer_token.credentials if bearer_token else None) or header_token
+    if not token or not secrets.compare_digest(token, API_TOKEN):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 def load_stops() -> list[dict]:
@@ -33,7 +57,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/departures")
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+@app.get("/departures", dependencies=[Depends(verify_token)])
 async def get_departures():
     stops = load_stops()
     results = []
