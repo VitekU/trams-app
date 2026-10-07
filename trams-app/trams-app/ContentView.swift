@@ -11,11 +11,26 @@ struct ContentView: View {
     @State private var stops: [StopDepartures] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @State private var lastUpdated: Date?
+
+    private static let updatedFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm:ss"
+        return formatter
+    }()
 
     var body: some View {
         NavigationStack {
             content
                 .navigationTitle("Departures")
+                .toolbar {
+                    Button {
+                        Task { await load() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .disabled(isLoading)
+                }
         }
         .task {
             if stops.isEmpty {
@@ -41,14 +56,27 @@ struct ContentView: View {
                 )
             }
         } else {
-            ScrollView {
-                LazyVStack(spacing: 16) {
-                    ForEach(stops) { stop in
-                        StopTile(stop: stop)
-                    }
+            List {
+                ForEach(stops) { stop in
+                    StopTile(stop: stop)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 }
-                .padding()
+
+                if let lastUpdated {
+                    Text("Updated \(Self.updatedFormatter.string(from: lastUpdated))")
+                        .font(.footnote.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemBackground))
             .refreshable {
                 await load()
             }
@@ -60,6 +88,7 @@ struct ContentView: View {
         errorMessage = nil
         do {
             stops = try await APIClient.shared.fetchDepartures()
+            lastUpdated = Date()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -124,9 +153,9 @@ private struct DepartureRow: View {
     var body: some View {
         HStack {
             if let minutes = departure.minutes {
-                Text("\(minutes) min")
+                Text("in \(minutes) min")
                     .font(.body.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(departure.isDelayed ? Color.red : Color.green)
+                    .foregroundStyle(minutesColor)
             } else {
                 Text("—")
                     .foregroundStyle(.secondary)
@@ -138,6 +167,15 @@ private struct DepartureRow: View {
                 Text(time)
                     .font(.body.monospacedDigit())
             }
+        }
+    }
+
+    private var minutesColor: Color {
+        guard let delay = departure.delayMinutes else { return .green }
+        switch delay {
+        case ..<1: return .green
+        case 1...5: return .orange
+        default: return .red
         }
     }
 }

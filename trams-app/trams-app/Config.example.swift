@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum Config {
+enum Config_example {
     static let baseURL = URL(string: "http://localhost:8000")!
     static let apiToken = "YOUR_API_TOKEN"
 }

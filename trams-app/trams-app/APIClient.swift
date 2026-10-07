@@ -75,12 +75,14 @@ struct Departure: Codable, Identifiable {
         displayDate.map { Self.timeFormatter.string(from: $0) }
     }
 
-    var isDelayed: Bool {
+    var delayMinutes: Int? {
         guard let scheduled = Self.parse(scheduled),
               let predicted = Self.parse(predicted) else {
-            return false
+            return nil
         }
-        return predicted > scheduled.addingTimeInterval(60)
+        let delay = predicted.timeIntervalSince(scheduled)
+        guard delay > 60 else { return nil }
+        return Int(delay / 60)
     }
 }
 
@@ -114,6 +116,7 @@ struct APIClient {
     func fetchDepartures() async throws -> [StopDepartures] {
         var request = URLRequest(url: Config.baseURL.appendingPathComponent("departures"))
         request.httpMethod = "GET"
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue(Config.apiToken, forHTTPHeaderField: "X-API-Key")
 
         let (data, response) = try await session.data(for: request)
