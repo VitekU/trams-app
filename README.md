@@ -4,6 +4,10 @@ A simple departure board for Prague trams — a FastAPI server that aggregates
 departure times from the [Golemio API](https://api.golemio.cz/) and a SwiftUI
 iOS app that displays them.
 
+___
+
+This app was coded with opencode using the GLM 5.3 model.
+
 ## Components
 
 ### `server/`
@@ -49,8 +53,3 @@ Open `trams-app/trams-app.xcodeproj` in Xcode and run.
 
 The server is deployed to Render via the included Dockerfile, with
 `GOLEMIO_API_KEY` and `API_TOKEN` set as environment variables.
-
-## Attribution
-
-This project has been coded with [opencode](https://opencode.ai) using the
-GLM 5.3 model.
