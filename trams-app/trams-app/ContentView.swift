@@ -101,49 +101,46 @@ private struct StopTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(spacing: 6) {
-                    ForEach(stop.sortedLines, id: \.self) { line in
-                        Text(line)
-                            .font(.headline.monospaced())
-                            .foregroundStyle(.primary)
-                            .frame(minWidth: 36, minHeight: 36)
-                            .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
-                    }
+            Text(stop.stopName)
+                .font(.headline)
+
+            ForEach(Array(stop.sortedLines.enumerated()), id: \.element) { index, line in
+                if index > 0 {
+                    Divider()
                 }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(stop.stopName)
-                        .font(.headline)
-
-                    if !headsigns.isEmpty {
-                        Text(headsigns)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-            }
-
-            VStack(spacing: 8) {
-                ForEach(stop.sortedLines, id: \.self) { line in
-                    ForEach(stop.departures[line] ?? []) { departure in
-                        DepartureRow(departure: departure)
-                    }
-                }
+                LineGroup(line: line, departures: stop.departures[line] ?? [])
             }
         }
         .padding(16)
         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
     }
+}
 
-    private var headsigns: String {
-        var seen = Set<String>()
-        let all = stop.sortedLines.flatMap { line in
-            (stop.departures[line] ?? []).compactMap(\.headsign)
+private struct LineGroup: View {
+    let line: String
+    let departures: [Departure]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Text(line)
+                    .font(.headline.monospaced())
+                    .foregroundStyle(.primary)
+                    .frame(minWidth: 36, minHeight: 36)
+                    .background(Color(.systemGray5), in: RoundedRectangle(cornerRadius: 8))
+
+                if let headsign = departures.first?.headsign {
+                    Text(headsign)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            ForEach(departures) { departure in
+                DepartureRow(departure: departure)
+            }
         }
-        return all.filter { seen.insert($0).inserted }.joined(separator: " · ")
     }
 }
 
