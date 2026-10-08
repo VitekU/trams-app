@@ -3,5 +3,10 @@
     "stop_id": "U339Z1P",
     "stop_name": "Lipanská",
     "tram_lines": ["9", "15"]
+  },
+  {
+	  "stop_id": "U361Z1P",
+	  "stop_name": "Malostranské náměstí",
+	  "tram_lines": ["15"]
   }
 ]
